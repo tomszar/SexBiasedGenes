@@ -12,49 +12,39 @@ setwd(paste(path, "/DataBases", sep = ""))
 samples <- read.csv("SubjSampleSimple.csv")
 counts  <- read.table("GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_reads.gct", skip=2, header=T, row.names=1)
 
-####SUBSET SAMPLES-------------------------------------------------------------------------------------------####
-splited    <- split(samples, samples$SMTSD)
-splited[1] <- NULL
-#Remove those with only one sex
-rem <- 0
-for(l in 1:length(splited)){
-  #Evaluated whether mean value in gender is either 1 or 2
-  if(mean(splited[[l]]$GENDER)==1 | mean(splited[[l]]$GENDER)==2){
-    print(names(splited[l]))
-    rem <- c(rem, l)
+####CLEAN DATA-----------------------------------------------------------------------------------------------####
+samples <- droplevels(filter(samples, SMTSD != '' & SMTSD != "Cells - Leukemia cell line (CML)"))
+#Remove tissue with one sex
+for(l in 1:length(levels(samples$SMTSD))){
+  dat <- filter(samples, SMTSD == levels(samples$SMTSD)[l])
+  if(mean(dat$GENDER) == 1 |  mean(dat$GENDER) == 2){
+    print(levels(samples$SMTSD)[l])
+    samples <- filter(samples, SMTSD != levels(samples$SMTSD)[l])
   }
 }
-splited[rem] <- NULL
+remove(dat)
 
-#Create a list of counts, with SAMPID from splited
-tissuecounts <- vector("list", length(names(splited)))
-names(tissuecounts) <- names(splited)
+samples <- droplevels(samples)
+counts  <- counts[ , colnames(counts) %in% as.character(samples$SAMPID)]
+samples <- samples[as.character(samples$SAMPID) %in% colnames(counts), ]
 
-#Add counts to each tissue of the list
-for(l in 1:length(tissuecounts)){
-  tissuecounts[[l]]$counts <- select(counts, which(colnames(counts) %in% as.character(splited[[l]]$SAMPID)))
-}
+#Samples count
+#Order table
+samples <- within(samples, SMTSD <- factor(SMTSD, levels=names(sort(table(SMTSD), 
+                                                                    decreasing=TRUE))))
 
-#adiposecount <- select(counts, which(colnames(counts) %in% as.character(adiposesamp$SAMPID)))
-#sampincount  <- as.data.frame(cbind(colnames(adiposecount)))
-#colnames(sampincount) <- "SAMPID"
-#adiposesamp  <- left_join(sampincount, adiposesamp)
+median(summary(samples$SMTSD))
+ggplot(samples, aes(SMTSD)) + geom_bar(aes(fill=as.factor(GENDER)), position = position_stack(reverse = TRUE)) + 
+  coord_flip() + geom_hline(yintercept = median(summary(samples$SMTSD))) + 
+  theme(legend.position = "top")
 
-#musclesamp  <- droplevels(filter(samples, SMTSD == 'Muscle - Skeletal'))
-#musclecount <- select(counts, which(colnames(counts) %in% as.character(musclesamp$SAMPID)))
-#sampincount <- as.data.frame(cbind(colnames(musclecount)))
-#colnames(sampincount) <- "SAMPID"
-#musclesamp  <- left_join(sampincount, musclesamp)
-
-####CLEAN DATA-----------------------------------------------------------------------------------------------####
 #Remove low counts
-cpm          <- lapply(tissuecounts, cpm)
-keep.exprs   <- rowSums(cpm>1)>=ncol(cpm)
-adiposecount <- adiposecount[keep.exprs, ]
-
-cpm          <- cpm(musclecount)
-keep.exprs   <- rowSums(cpm>1)>=ncol(cpm)
-musclecount  <- musclecount[keep.exprs, ]
+cpm1   <- cpm(counts)
+#keep those rows (genes) with cpm values greater than 145
+keep   <- rowSums(cpm1>1)>=median(summary(samples$SMTSD))
+sum(keep)
+counts <- counts[keep,]
+remove(cpm1)
 
 ####DESEQ DATABASE-------------------------------------------------------------------------------------------####
 adiposecond           <- adiposesamp[,c(3:4)]
