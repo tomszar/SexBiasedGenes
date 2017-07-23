@@ -30,11 +30,11 @@ samples <- samples[as.character(samples$SAMPID) %in% colnames(counts), ]
 
 #Samples count
 #Order table
-samples <- within(samples, SMTSD <- factor(SMTSD, levels=names(sort(table(SMTSD), 
+samplestoplot <- within(samples, SMTSD <- factor(SMTSD, levels=names(sort(table(SMTSD), 
                                                                     decreasing=TRUE))))
 
 median(summary(samples$SMTSD))
-ggplot(samples, aes(SMTSD)) + geom_bar(aes(fill=as.factor(GENDER)), position = position_stack(reverse = TRUE)) + 
+ggplot(samplestoplot, aes(SMTSD)) + geom_bar(aes(fill=as.factor(GENDER)), position = position_stack(reverse = TRUE)) + 
   coord_flip() + geom_hline(yintercept = median(summary(samples$SMTSD))) + 
   theme(legend.position = "top")
 
@@ -47,13 +47,13 @@ counts <- counts[keep,]
 remove(cpm1)
 
 ####DESEQ DATABASE-------------------------------------------------------------------------------------------####
-adiposecond           <- adiposesamp[,c(3:4)]
-rownames(adiposecond) <- adiposesamp[,1]
-adiposecond$GENDER    <- as.factor(adiposecond$GENDER)
-MatAdip <- DESeqDataSetFromMatrix(countData = adiposecount, 
-                                 colData   = adiposecond,
+conditions           <- samples[,c(2:4,6)]
+rownames(conditions) <- samples[,1]
+conditions$GENDER    <- as.factor(conditions$GENDER)
+DesMat <- DESeqDataSetFromMatrix(countData = counts, 
+                                 colData   = conditions,
                                  design    = ~ GENDER + AGE)
-MatAdip
+DesMat
 
 musclecond           <- musclesamp[,c(3:4)]
 rownames(musclecond) <- musclesamp[,1]
