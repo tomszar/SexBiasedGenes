@@ -1,0 +1,92 @@
+---
+title: "Sex biased genes"
+output: html_notebook
+---
+
+# Preliminaries 
+
+Loading libraries
+
+```{r libraries, echo=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(DESeq2)
+library(edgeR)
+library(limma)
+```
+
+Loading databases
+
+```{r databases}
+setwd('..')
+path <- getwd()
+setwd(paste(path, "/DataBases", sep = ""))
+samples <- read.csv("SubjSampleSimple.csv")
+counts  <- read.table("GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_reads.gct", skip=2, header=T, row.names=1)
+head(samples)
+head(counts)
+```
+
+Clean data
+
+```{r cleandata}
+samples <- droplevels(filter(samples, SMTSD != '' & SMTSD != "Cells - Leukemia cell line (CML)"))
+#Remove tissue with one sex
+for(l in 1:length(levels(samples$SMTSD))){
+  dat <- filter(samples, SMTSD == levels(samples$SMTSD)[l])
+  if(mean(dat$GENDER) == 1 |  mean(dat$GENDER) == 2){
+    print(levels(samples$SMTSD)[l])
+    samples <- filter(samples, SMTSD != levels(samples$SMTSD)[l])
+  }
+}
+remove(dat)
+
+samples <- droplevels(samples)
+counts  <- counts[ , colnames(counts) %in% as.character(samples$SAMPID)]
+samples <- samples[as.character(samples$SAMPID) %in% colnames(counts), ]
+```
+
+Plot tissues
+
+```{r plot tissues}
+#Samples count
+#Order table
+samplestoplot <- within(samples, SMTSD <- factor(SMTSD, levels=names(sort(table(SMTSD), 
+                                                                    decreasing=TRUE))))
+
+median(summary(samples$SMTSD))
+ggplot(samplestoplot, aes(SMTSD)) + geom_bar(aes(fill=as.factor(GENDER)), position = position_stack(reverse = TRUE)) + 
+  coord_flip() + geom_hline(yintercept = median(summary(samples$SMTSD))) + 
+  theme(legend.position = "top")
+
+```
+
+Removing genes with low counts. Will remove genes with cpm values greater than the median number of samples per tissue, that is `r median(summary(samples$SMTSD))`
+
+```{r removing low counts}
+gc()
+counts2 <- Matrix(as.matrix(counts), sparse=TRUE)
+cpm1   <- as.data.frame(cpm(counts))
+keep   <- rowSums(cpm1>1)>=median(summary(samples$SMTSD))
+sum(keep)
+counts <- counts[keep,]
+remove(cpm1)
+```
+```{r}
+
+```
+
+
+```{r}
+macounts <- as.matrix(counts)
+```
+
+
+
+```{r}
+print(object.size(macounts), units="auto")
+print(object.size(counts), units="auto")
+print(object.size(samples), units = "auto")
+print(object.size(samplestoplot), units = "auto")
+```
+
