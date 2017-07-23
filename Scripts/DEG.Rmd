@@ -65,6 +65,10 @@ Removing genes with low counts. Will remove genes with cpm values greater than t
 
 ```{r removing low counts}
 gc()
+
+y <- Reduce(cbind2, lapply(counts, Matrix, sparse = TRUE))
+
+
 counts2 <- Matrix(as.matrix(counts), sparse=TRUE)
 cpm1   <- as.data.frame(cpm(counts))
 keep   <- rowSums(cpm1>1)>=median(summary(samples$SMTSD))
