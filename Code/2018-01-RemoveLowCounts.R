@@ -20,7 +20,7 @@ counts <- counts[keep,]
 remove(cpm1)
 
 #Save file
-write.csv(counts, file = "HighGeneReads.csv", quote = FALSE, col.names = FALSE)
+write.csv(counts, file = "/storage/home/tug156/code/HighGeneReads.csv", quote = FALSE, col.names = FALSE)
 
 ####DESEQ DATABASE-------------------------------------------------------------------------------------------####
 #conditions           <- samples[,c(2:4,6)]
