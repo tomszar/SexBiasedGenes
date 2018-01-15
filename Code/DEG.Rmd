@@ -1,13 +1,15 @@
 ---
 title: "Sex biased genes"
-output: html_notebook
+output: html_document
 ---
 
-# Preliminaries 
+This code will look at some basic stats from the [GTEx database](https://www.gtexportal.org/home/), and will clean and export the database.
+
+## Preliminaries 
 
 Loading libraries
 
-```{r libraries, echo=FALSE, warning=FALSE}
+```{r libraries, echo=FALSE, warning=FALSE, message=FALSE}
 library(ggplot2)
 library(dplyr)
 library(DESeq2)
@@ -24,10 +26,13 @@ setwd(paste(path, "/DataBases", sep = ""))
 samples <- read.csv("SubjSampleSimple.csv")
 counts  <- read.table("GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_reads.gct", skip=2, header=T, row.names=1)
 head(samples)
-head(counts)
+counts[1:6,1:10]
 ```
 
-Clean data
+## Clean data
+
+The cleaning will involve removing data with no tissue information, and those coming from leukemia cell lines.
+Furthermore, we will remove whole tissue samples that have only one sex represented.
 
 ```{r cleandata}
 samples <- droplevels(filter(samples, SMTSD != '' & SMTSD != "Cells - Leukemia cell line (CML)"))
@@ -46,7 +51,7 @@ counts  <- counts[ , colnames(counts) %in% as.character(samples$SAMPID)]
 samples <- samples[as.character(samples$SAMPID) %in% colnames(counts), ]
 ```
 
-Plot tissues
+We can see the tissues and the number of subjects represented by sex.
 
 ```{r plot tissues}
 #Samples count
@@ -55,15 +60,26 @@ samplestoplot <- within(samples, SMTSD <- factor(SMTSD, levels=names(sort(table(
                                                                     decreasing=TRUE))))
 
 median(summary(samples$SMTSD))
-ggplot(samplestoplot, aes(SMTSD)) + geom_bar(aes(fill=as.factor(GENDER)), position = position_stack(reverse = TRUE)) + 
+ggplot(samplestoplot, aes(SMTSD)) + 
+  geom_bar(aes(fill=as.factor(GENDER)), position = position_stack(reverse = TRUE)) + 
   coord_flip() + geom_hline(yintercept = median(summary(samples$SMTSD))) + 
   theme(legend.position = "top")
 
 ```
 
+## Saving database
+
+We will now save the cleaned database for future use
+```{r saving}
+setwd(paste(path, "/Results/GTEx", sep = ""))
+write.csv(samples, file = "SubjSample.csv", quote = FALSE, col.names = FALSE)
+write.csv(counts, file = "GeneReads.csv", quote = FALSE, col.names = FALSE)
+```
+
+
 Removing genes with low counts. Will remove genes with cpm values greater than the median number of samples per tissue, that is `r median(summary(samples$SMTSD))`
 
-```{r removing low counts}
+```{r removing low counts, eval=FALSE}
 gc()
 
 y <- Reduce(cbind2, lapply(counts, Matrix, sparse = TRUE))
@@ -76,18 +92,15 @@ sum(keep)
 counts <- counts[keep,]
 remove(cpm1)
 ```
-```{r}
-
-```
 
 
-```{r}
+```{r, eval=FALSE}
 macounts <- as.matrix(counts)
 ```
 
 
 
-```{r}
+```{r, eval=FALSE}
 print(object.size(macounts), units="auto")
 print(object.size(counts), units="auto")
 print(object.size(samples), units = "auto")
