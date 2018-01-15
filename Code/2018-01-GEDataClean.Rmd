@@ -72,7 +72,7 @@ ggplot(samplestoplot, aes(SMTSD)) +
 We will now save the cleaned database for future use
 ```{r saving}
 setwd(paste(path, "/Results/GTEx", sep = ""))
-write.csv(samples, file = "SubjSample.csv", quote = FALSE, col.names = FALSE)
+write.csv(samples, file = "SubjSample.csv", quote = FALSE, col.names = FALSE, row.names = FALSE)
 write.csv(counts, file = "GeneReads.csv", quote = FALSE, col.names = FALSE)
 ```
 
