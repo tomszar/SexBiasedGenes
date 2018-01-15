@@ -8,8 +8,8 @@ library(DESeq2)
 library(edgeR)
 
 ####LOAD DATA BASES------------------------------------------------------------------------------------------####
-samples <- read.csv("storage/home/tug156/code/SubjSample.csv")
-counts  <- read.csv("storage/home/tug156/code/GeneReads.csv", row.names = 1)
+samples <- read.csv("/storage/home/tug156/code/SubjSample.csv")
+counts  <- read.csv("/storage/home/tug156/code/GeneReads.csv", row.names = 1)
 
 #Remove low counts
 cpm1   <- cpm(counts[1:100,])
