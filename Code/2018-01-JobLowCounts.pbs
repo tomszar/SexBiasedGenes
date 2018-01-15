@@ -10,4 +10,4 @@ module load r/3.4
 
 cd $PBS_O_WORKDIR
 
-R --file=storage/home/tug156/Code/2018-01-RemoveLowCounts.R
+R --file=storage/home/tug156/code/2018-01-RemoveLowCounts.R
