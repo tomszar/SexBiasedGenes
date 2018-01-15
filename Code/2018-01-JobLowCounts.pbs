@@ -1,0 +1,12 @@
+#!/bin/bash -l
+#PBS -N RemoveLowCounts
+#PBS -l walltime=10:00:00
+#PBS -l nodes=1:ppn=5
+#PBS -l pmem=10gb
+#PBS -j oe
+
+module load r/3.4
+
+cd $PBS_O_WORKDIR
+
+R --file=storage/home/tug156/Code/2018-01-RemoveLowCounts.R.R
