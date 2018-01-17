@@ -50,7 +50,7 @@ for(tis in 1:length(SamplesByTissue)){
   cond$GENDER    <- as.factor(cond$GENDER) #making gender a factor
   #Order cond and GeneCounts to match each other
   cond       <- cond[order(rownames(cond)), ]
-  GeneCounts <- GeneCounts[, colnames(GeneCounts)]
+  GeneCounts <- GeneCounts[, order(colnames(GeneCounts))]
   print(as.character(SamplesByTissue[[tis]]$SMTSD[1])) #Printing the tissue 
   #DESeq analysis
   mat <- DESeqDataSetFromMatrix(countData = GeneCounts,  #Creating deseq database with counts and covariates (cond)
