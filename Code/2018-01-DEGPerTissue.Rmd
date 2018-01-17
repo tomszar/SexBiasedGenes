@@ -33,33 +33,37 @@ This is the core of the script.
 For each tissue we will run the following pipeline:
 - First, we will transform the gene counts into counts per million (cpm) values, and remove those with values lower than the n of the minimum group size
 - Second, and following the DESeq2 pipeline, we will compute the differential expression analysis, using Age and Sex as covariates
-- Finally, a table with the results will be exported 
+- Finally, a table with the results will be exported as .RData file
 
-```{r divide by tissue}
+```{r DEG by tissue, message=FALSE}
 setwd(paste(path, "/Results/DEGenes", sep = ""))
 
 SamplesByTissue <- split(samples, samples$SMTSD)
 
 for(tis in 1:length(SamplesByTissue)){
-  GeneCounts <- counts[,colnames(counts) %in% SamplesByTissue[[tis]]$SAMPID]
-  keep       <- rowSums(cpm(GeneCounts)>1) >= min(summary(as.factor(SamplesByTissue[[tis]]$GENDER))) # where is the minimum group size 
-  GeneCounts <- GeneCounts[keep,] 
+  GeneCounts <- counts[,colnames(counts) %in% SamplesByTissue[[tis]]$SAMPID] #Select reads of the selected tissue
+  keep       <- rowSums(cpm(GeneCounts)>1) >= min(summary(as.factor(SamplesByTissue[[tis]]$GENDER))) #Remove genes with low counts, where the second 
+                                                                                                     #factor is the n of the group with less subjects
+  GeneCounts <- GeneCounts[keep,] #Removing low counts from GeneCounts file
   cond       <- SamplesByTissue[[tis]][,3:4] #Create covariate conditions (Gender and age)
-  rownames(cond) <- SamplesByTissue[[tis]][,1] 
-  cond$GENDER    <- as.factor(cond$GENDER) 
+  rownames(cond) <- SamplesByTissue[[tis]][,1] #Adding sample ID as rowname 
+  cond$GENDER    <- as.factor(cond$GENDER) #making gender a factor
+  #Order cond and GeneCounts to match each other
+  cond       <- cond[order(rownames(cond)), ]
+  GeneCounts <- GeneCounts[, colnames(GeneCounts)]
+  print(as.character(SamplesByTissue[[tis]]$SMTSD[1])) #Printing the tissue 
   #DESeq analysis
-  mat <- DESeqDataSetFromMatrix(countData = GeneCounts,  #Creating deseq database with counts and covariates (braincond)
+  mat <- DESeqDataSetFromMatrix(countData = GeneCounts,  #Creating deseq database with counts and covariates (cond)
                                 colData = cond,
                                 design  = ~ GENDER + AGE)
   mat <- estimateSizeFactors( mat ) #The following three lines of code are the proper estimation
   mat <- estimateDispersions( mat ) #This takes a while
   mat <- nbinomWaldTest(mat)
-  resmat <- results(mat, pAdjustMethod = "BH", contrast = c("GENDER", "1", "2")) #Export the results, with contrast between males and 
-  #females. P adjustment can be changed, this case is BH method
-  table(resmat$padj < 0.05) #Number of differentially expressed genes
+  resmat <- results(mat, pAdjustMethod = "BH", contrast = c("GENDER", "1", "2")) #Export the results, with contrast between males and females. 
+  #P adjustment can be changed, this case is BH method
+  print(table(resmat$padj < 0.05)) #Number of differentially expressed genes
   ResSig <- subset(resmat, padj < 0.05) #Subset results to those differentially expressed only
-  save(ResSig, file = paste("resmatSig", as.character(SamplesByTissue[[1]]$SMTSD[1]), ".RData", sep = "_"))
+  save(ResSig, file = paste("resmatSig", as.character(SamplesByTissue[[tis]]$SMTSD[1]), ".RData", sep = "_")) #Saving DEG as .RData
 }
-
 ```
 
