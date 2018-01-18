@@ -46,8 +46,9 @@ for(tis in 1:length(SamplesByTissue)){
                                                                                                      #factor is the n of the group with less subjects
   symbols    <- as.character(counts[keep,1])
   GeneCounts <- GeneCounts[keep,] #Removing low counts from GeneCounts file
-  cond       <- SamplesByTissue[[tis]][,3:4] #Create covariate conditions (Gender and age)
-  rownames(cond) <- SamplesByTissue[[tis]][,1] #Adding sample ID as rowname 
+  insample   <- SamplesByTissue[[tis]]$SAMPID %in% colnames(GeneCounts)
+  cond       <- SamplesByTissue[[tis]][insample, 3:4] #Create covariate conditions (Gender and age)
+  rownames(cond) <- SamplesByTissue[[tis]][insample, 1] #Adding sample ID as rowname 
   cond$GENDER    <- as.factor(cond$GENDER) #making gender a factor
   #Order cond and GeneCounts to match each other
   cond       <- cond[order(rownames(cond)), ]
