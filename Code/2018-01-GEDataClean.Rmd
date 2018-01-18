@@ -47,7 +47,9 @@ for(l in 1:length(levels(samples$SMTSD))){
 remove(dat)
 
 samples <- droplevels(samples)
-counts  <- counts[ , colnames(counts) %in% as.character(samples$SAMPID)]
+keepcounts    <- colnames(counts) %in% as.character(samples$SAMPID)
+keepcounts[1] <- TRUE
+counts  <- counts[, keepcounts]
 samples <- samples[as.character(samples$SAMPID) %in% colnames(counts), ]
 ```
 
