@@ -44,6 +44,7 @@ for(tis in 1:length(SamplesByTissue)){
   GeneCounts <- counts[,colnames(counts) %in% SamplesByTissue[[tis]]$SAMPID] #Select reads of the selected tissue
   keep       <- rowSums(cpm(GeneCounts)>1) >= min(summary(as.factor(SamplesByTissue[[tis]]$GENDER))) #Remove genes with low counts, where the second 
                                                                                                      #factor is the n of the group with less subjects
+  symbols    <- as.character(counts[keep,1])
   GeneCounts <- GeneCounts[keep,] #Removing low counts from GeneCounts file
   cond       <- SamplesByTissue[[tis]][,3:4] #Create covariate conditions (Gender and age)
   rownames(cond) <- SamplesByTissue[[tis]][,1] #Adding sample ID as rowname 
@@ -61,6 +62,7 @@ for(tis in 1:length(SamplesByTissue)){
   mat <- nbinomWaldTest(mat)
   resmat <- results(mat, pAdjustMethod = "BH", contrast = c("GENDER", "1", "2")) #Export the results, with contrast between males and females. 
   #P adjustment can be changed, this case is BH method
+  resmat$symbol <- symbols
   print(table(resmat$padj < 0.05)) #Number of differentially expressed genes
   ResSig <- subset(resmat, padj < 0.05) #Subset results to those differentially expressed only
   save(ResSig, file = paste("resmatSig", as.character(SamplesByTissue[[tis]]$SMTSD[1]), ".RData", sep = "_")) #Saving DEG as .RData
