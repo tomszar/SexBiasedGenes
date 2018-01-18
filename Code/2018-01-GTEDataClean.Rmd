@@ -12,19 +12,17 @@ Loading libraries
 ```{r libraries, echo=FALSE, warning=FALSE, message=FALSE}
 library(ggplot2)
 library(dplyr)
-library(DESeq2)
-library(edgeR)
-library(limma)
 ```
 
 Loading databases
 
-```{r databases}
+```{r databases, message=FALSE}
 setwd('..')
 path <- getwd()
 setwd(paste(path, "/DataBases", sep = ""))
 samples <- read.csv("SubjSampleSimple.csv")
-counts  <- read.table("GTEx_Analysis_v6p_RNA-seq_RNA-SeQCv1.1.8_gene_reads.gct", skip=2, header=T, row.names=1)
+counts  <- read.table(gzfile("GTEx_Analysis_2016-01-15_v7_RNASeQCv1.1.8_gene_reads.gct.gz"), skip=2, 
+                      header=T, row.names=1)
 head(samples)
 counts[1:6,1:10]
 ```
