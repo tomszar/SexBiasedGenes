@@ -27,6 +27,39 @@ head(samples)
 counts[1:6,1:10]
 ```
 
+## Descriptive stats
+
+In this sample, there are `r nlevels(samples$SUBJID)` subjects, representing a total of `r nlevels(samples$SAMPID)` individual samples
+
+```{r counts}
+ggplot(samples, aes(as.factor(GENDER))) + geom_bar(aes(fill = AGE), stat="count", position=position_dodge())
+```
+
+We can see the tissues and the number of subjects represented by sex.
+
+```{r plot tissues}
+#Samples count
+#Order table
+samplestoplot <- within(samples, SMTSD <- factor(SMTSD, levels=names(sort(table(SMTSD), 
+                                                                    decreasing=TRUE))))
+
+median(summary(samples$SMTSD))
+ggplot(samplestoplot, aes(SMTSD)) + 
+  geom_bar(aes(fill=as.factor(GENDER)), position = position_stack(reverse = TRUE)) + 
+  coord_flip() + geom_hline(yintercept = median(summary(samples$SMTSD))) + 
+  theme(legend.position = "top")
+
+samplestoplot <- within(samples, SMTS <- factor(SMTS, levels=names(sort(table(SMTS), 
+                                                                    decreasing=TRUE))))
+
+median(summary(samples$SMTS))
+ggplot(samplestoplot, aes(SMTS)) + 
+  geom_bar(aes(fill=as.factor(GENDER)), position = position_stack(reverse = TRUE)) + 
+  coord_flip() + geom_hline(yintercept = median(summary(samples$SMTS))) + 
+  theme(legend.position = "top")
+
+```
+
 ## Clean data
 
 The cleaning will involve removing data with no tissue information, and those coming from leukemia cell lines.
@@ -51,27 +84,11 @@ counts  <- counts[, keepcounts]
 samples <- samples[as.character(samples$SAMPID) %in% colnames(counts), ]
 ```
 
-We can see the tissues and the number of subjects represented by sex.
-
-```{r plot tissues}
-#Samples count
-#Order table
-samplestoplot <- within(samples, SMTSD <- factor(SMTSD, levels=names(sort(table(SMTSD), 
-                                                                    decreasing=TRUE))))
-
-median(summary(samples$SMTSD))
-ggplot(samplestoplot, aes(SMTSD)) + 
-  geom_bar(aes(fill=as.factor(GENDER)), position = position_stack(reverse = TRUE)) + 
-  coord_flip() + geom_hline(yintercept = median(summary(samples$SMTSD))) + 
-  theme(legend.position = "top")
-
-```
-
 ## Saving database
 
 We will now save the cleaned database for future use
 ```{r saving}
 setwd(paste(path, "/Results/GTEx", sep = ""))
-write.csv(samples, file = "SubjSample.csv", quote = FALSE, col.names = FALSE, row.names = FALSE)
-write.csv(counts, file = "GeneReads.csv", quote = FALSE, col.names = FALSE)
+write.csv(samples, file = "SubjSample.csv", quote = FALSE, row.names = FALSE)
+write.csv(counts, gzfile("GeneReads.csv.gz"), quote = FALSE)
 ```
