@@ -27,9 +27,33 @@ head(samples)
 counts[1:6,1:10]
 ```
 
+## Clean data
+
+The cleaning will involve removing data with no tissue information, and those coming from leukemia cell lines.
+Furthermore, we will remove whole tissue samples that have only one sex represented.
+
+```{r cleandata}
+samples <- droplevels(filter(samples, SMTSD != '' & SMTSD != "Cells - Leukemia cell line (CML)"))
+#Remove tissue with one sex
+for(l in 1:length(levels(samples$SMTSD))){
+  dat <- filter(samples, SMTSD == levels(samples$SMTSD)[l])
+  if(mean(dat$GENDER) == 1 |  mean(dat$GENDER) == 2){
+    print(levels(samples$SMTSD)[l])
+    samples <- filter(samples, SMTSD != levels(samples$SMTSD)[l])
+  }
+}
+remove(dat)
+
+samples <- droplevels(samples)
+keepcounts    <- colnames(counts) %in% as.character(samples$SAMPID)
+keepcounts[1] <- TRUE
+counts  <- counts[, keepcounts]
+samples <- samples[as.character(samples$SAMPID) %in% colnames(counts), ]
+```
+
 ## Descriptive stats
 
-In this sample, there are `r nlevels(samples$SUBJID)` subjects, representing a total of `r nlevels(samples$SAMPID)` individual samples
+After cleaning, in this sample, there are `r nlevels(samples$SUBJID)` subjects, representing a total of `r nlevels(samples$SAMPID)` individual samples
 
 ```{r counts}
 ggplot(samples, aes(as.factor(GENDER))) + geom_bar(aes(fill = AGE), stat="count", position=position_dodge())
@@ -60,29 +84,6 @@ ggplot(samplestoplot, aes(SMTS)) +
 
 ```
 
-## Clean data
-
-The cleaning will involve removing data with no tissue information, and those coming from leukemia cell lines.
-Furthermore, we will remove whole tissue samples that have only one sex represented.
-
-```{r cleandata}
-samples <- droplevels(filter(samples, SMTSD != '' & SMTSD != "Cells - Leukemia cell line (CML)"))
-#Remove tissue with one sex
-for(l in 1:length(levels(samples$SMTSD))){
-  dat <- filter(samples, SMTSD == levels(samples$SMTSD)[l])
-  if(mean(dat$GENDER) == 1 |  mean(dat$GENDER) == 2){
-    print(levels(samples$SMTSD)[l])
-    samples <- filter(samples, SMTSD != levels(samples$SMTSD)[l])
-  }
-}
-remove(dat)
-
-samples <- droplevels(samples)
-keepcounts    <- colnames(counts) %in% as.character(samples$SAMPID)
-keepcounts[1] <- TRUE
-counts  <- counts[, keepcounts]
-samples <- samples[as.character(samples$SAMPID) %in% colnames(counts), ]
-```
 
 ## Saving database
 
