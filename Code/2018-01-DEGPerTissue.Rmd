@@ -40,7 +40,7 @@ setwd(paste(path, "/Results/DEGenes", sep = ""))
 
 SamplesByTissue <- split(samples, samples$SMTSD)
 
-for(tis in 1:length(SamplesByTissue)){
+for(tis in 1:(length(SamplesByTissue)-44)){
   GeneCounts <- counts[,colnames(counts) %in% SamplesByTissue[[tis]]$SAMPID] #Select reads of the selected tissue
   #Remove genes with low counts, where the second factor is the n of the group with less subjects
   keep       <- rowSums(cpm(GeneCounts)>1) >= min(summary(as.factor(SamplesByTissue[[tis]]$GENDER))) 
@@ -60,7 +60,8 @@ for(tis in 1:length(SamplesByTissue)){
                                 colData = cond,
                                 design  = ~ GENDER + AGE)
   mat    <- DESeq(mat) #DE estimation
-  resmat <- results(mat, contrast = c("GENDER", "1", "2")) #Export the results, with contrast between males and females. 
+  #Export the results, with contrast between males and females.
+  resmat <- results(mat, contrast = c("GENDER", "1", "2")) 
   summary(resmat)
   resmat$symbol <- symbols #Adding gene symbols to results object
   save(resmat, file = paste("Results", as.character(SamplesByTissue[[tis]]$SMTSD[1]), ".RData", sep = "_")) #Saving DEG as .RData
