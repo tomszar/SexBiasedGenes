@@ -40,7 +40,7 @@ setwd(paste(path, "/Results/DEGenes", sep = ""))
 
 SamplesByTissue <- split(samples, samples$SMTSD)
 
-for(tis in 1:(length(SamplesByTissue)-44)){
+for(tis in 1:length(SamplesByTissue)){
   GeneCounts <- counts[,colnames(counts) %in% SamplesByTissue[[tis]]$SAMPID] #Select reads of the selected tissue
   #Remove genes with low counts, where the second factor is the n of the group with less subjects
   keep       <- rowSums(cpm(GeneCounts)>1) >= min(summary(as.factor(SamplesByTissue[[tis]]$GENDER))) 
