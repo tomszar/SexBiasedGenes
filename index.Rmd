@@ -1,0 +1,25 @@
+---
+title: Content
+output: html_document
+---
+
+This is the main page of the differential expression analysis.
+The links below will take you to the proper analysis.
+Each link is in sequential order, many of them building on the output from the previous scripts.
+
+## Summary of the project
+
+The main purpose of this project is to generate a set of genomic regions that might be associated with Facial Sexual Dimorphism (FSD), and test their association.
+Therefore, the first step is to generate a set of such genomic regions. 
+For that purpose, we are using the [GTEx database](https://www.gtexportal.org/home/) that is comprised of gene expression data from different tissues of different subjects. 
+At this point, two approaches are being tested. 
+The first one, is to use differentially expressed genes between sexes across tissues, using the DESeq2 pipeline.
+The second approach is to generate a set of gene modules before hand, and then test the whole module (using their eigengene value) to test for any association with sex.
+To do that we are using the weighted correlation network analysis [(WGCNA)](https://labs.genetics.ucla.edu/horvath/CoexpressionNetwork/Rpackages/WGCNA/).
+
+## Steps
+
+- First, we [clean up](Code/2018-01-GTEDataClean.html) the data from GTEx database
+- The first approach is to generate a set of [differentially expressed genes](Code/2018-01-DEGPerTissue.html) for each tissue
+- The second approach is to run the [WGCNA pipeline](Code/2018-01-WGCNAperTissue.html).
+At this point, only Adipose tissue is being used
