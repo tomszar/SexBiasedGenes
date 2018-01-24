@@ -1,0 +1,171 @@
+---
+title: "WGCNA per tissue"
+output: html_document
+---
+
+In this script we will look at weighted correlation network analysis [(WGCNA)](https://labs.genetics.ucla.edu/horvath/CoexpressionNetwork/Rpackages/WGCNA/) analysis.
+Based on differential expression analysis and previous works, we choose to use Adipose - Subcutaneous and Muscle - Skeletal tissues
+
+## PRELIMINARIES
+
+Loading libraries
+
+```{r libraries, message=FALSE}
+library(WGCNA)
+library(DESeq2)
+library(edgeR)
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+library(annotables)
+library(GenomicRanges)
+library(ggbio)
+options(stringsAsFactors = FALSE);
+# Caution: skip this line if you run RStudio or other third-party R environments.
+#enableWGCNAThreads()
+```
+
+Loading databases
+
+```{r databases, message=FALSE}
+setwd('..')
+path <- getwd()
+setwd(paste(path, "/Results/GTEx", sep = ""))
+samples <- read.csv("SubjSample.csv")
+counts  <- read.csv(gzfile("GeneReads.csv.gz"), row.names=1)
+```
+
+## WGCNA analysis
+
+Separating samples by tissue
+
+```{r separate sampels}
+SamplesByTissue <- split(samples, samples$SMTSD)
+```
+
+
+### Adipose - Subcutaneous
+
+Making adipose counts ready
+
+```{r Adipose database}
+GeneCounts <- counts[,colnames(counts) %in% SamplesByTissue[[1]]$SAMPID] #Select reads of the selected tissue
+keep       <- rowSums(cpm(GeneCounts)>1) >= min(summary(as.factor(SamplesByTissue[[1]]$GENDER)))
+symbols    <- as.character(counts[keep,1])
+GeneCounts <- GeneCounts[keep,] #Removing low counts from GeneCounts file
+insample   <- SamplesByTissue[[1]]$SAMPID %in% colnames(GeneCounts)
+cond       <- SamplesByTissue[[1]][insample, 3:4] #Create covariate conditions (Gender and age)
+rownames(cond) <- SamplesByTissue[[1]][insample, 1] #Adding sample ID as rowname 
+cond$GENDER    <- as.factor(cond$GENDER) #making gender a factor
+cond$AGE       <- as.factor(cond$AGE) #making age a factor
+cond           <- droplevels(cond)
+#Order cond and GeneCounts to match each other
+cond       <- cond[order(rownames(cond)), ]
+GeneCounts <- GeneCounts[, order(colnames(GeneCounts))]
+GeneCounts <- varianceStabilizingTransformation(as.matrix(GeneCounts))
+GeneCounts <- t(GeneCounts)
+```
+
+Proper WGCNA analysis on adipose tissue.
+At this point, soft threshold in kept at 6, but needs to be changed according to the pickSoftThreshold() analysis.
+
+```{r WGCNAadipose}
+#Choosing soft threshold beta
+powers <- c(c(1:10), seq(from = 12, to=20, by=2))
+sft    <- pickSoftThreshold(GeneCounts, powerVector = powers, verbose = 5)
+
+#Choose the power which result is at least 0.90
+#vect <- (-sign(sft$fitIndices[,3])*sft$fitIndices[,2]) > 0.90
+#min(which(vect == TRUE))
+
+#One-step network construction for large datasets
+setwd(paste(path, "/Results/WGCNA/Adipose", sep = ""))
+bwnet <- blockwiseModules(GeneCounts,
+                         power = 6, TOMType = "unsigned", minModuleSize = 30,
+                         reassignThreshold = 0, mergeCutHeight = 0.25,
+                         saveTOMs = TRUE,
+                         saveTOMFileBase = "AdiposeTOM-blockwise",
+                         verbose = 3)
+table(bwnet$colors)
+
+# Plot the dendrogram and the module colors underneath
+plotDendroAndColors(bwnet$dendrograms[[1]], bwnet$colors[bwnet$blockGenes[[1]]],
+                    "Module colors",
+                    dendroLabels = FALSE, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05)
+
+#Saving important databases
+moduleLabels <- bwnet$colors
+MEs          <- bwnet$MEs;
+geneTree     <- bwnet$dendrograms[[1]]
+```
+
+Manova and Anova test for associations between eigengenes and Sex, by using Age and SubjectID (in the case of repeated samples) as covariates.
+The significant modules are chosen by an FDR < 0.05
+
+```{r AssocAdipose}
+# Define numbers of genes and samples
+nGenes   <- ncol(GeneCounts);
+nSamples <- nrow(GeneCounts);
+MEs  <- orderMEs(MEs)
+
+#MANOVA
+res.man <- manova(as.matrix(MEs) ~ cond$AGE + cond$GENDER)
+summary(res.man)
+suma <- summary.aov(res.man)
+suma
+pvals    <- unlist(lapply(suma, function(x) x[2,5]))
+pvalsfdr <- p.adjust(pvals, method = "fdr", n = length(pvals))
+pvalsfdr < 0.05
+```
+
+There are `r length(which(pvalsfdr<0.05))` significant modules for Sex
+
+```{r annotated gene sets}
+modNames <- substring(names(MEs), 3)
+geneModuleMembership <- as.data.frame(cor(GeneCounts, MEs, use = "p"))
+MMPvalue             <- as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples))
+names(geneModuleMembership) <- paste("MM", modNames, sep="")
+names(MMPvalue) <- paste("p.MM", modNames, sep="")
+
+modules <- substring(names(which(pvalsfdr < 0.05)), 13)
+columns <- match(modules, modNames)
+moduleGenes <- which(moduleLabels %in% modules)
+genes       <- data.frame(module = moduleLabels[moduleGenes], ensembl = colnames(GeneCounts)[moduleGenes])
+genes$ensembl <- gsub("\\..*","", genes$ensembl)
+genes         <- dplyr::left_join(genes, grch37, by = c("ensembl" = "ensgene"))
+genes$strand[genes$strand == 1]  <- "+"
+genes$strand[genes$strand == -1] <- "-"
+#Saving gene list
+setwd(paste(path, "/Results/WGCNA/Adipose", sep = ""))
+save(genes, file = "AdiposeGeneList.RData")
+```
+
+From the selected genes, we add 500 Kbp to each side to capture some potential regulatory influence of nearby SNPs.
+We show in the karyogram the regions selected.
+
+```{r granges}
+#Adding 500 Kbp (500,000 bp) to each side of the starting and ending point
+#Create a genomic ranges object
+gr <- makeGRangesFromDataFrame(genes,
+                               keep.extra.columns = F)
+
+gr <- gr + 500000
+#We reduce the overlaping regions
+gr <- reduce(gr)
+start(gr)[start(gr) < 0] <- 0
+
+#Gettin seq info
+info <- Seqinfo(genome = "hg19")
+info <- as.data.frame(info)[1:23,]
+seqlevels(gr)  <- rownames(info)
+seqlengths(gr) <- info$seqlengths 
+trim(gr)
+autoplot(gr, layout = "karyogram")
+
+#Save granges object
+setwd(paste(path, "/Results/WGCNA/Adipose", sep = ""))
+save(gr, file = "AdiposeGRanges.RData")
+```
+
+
+
