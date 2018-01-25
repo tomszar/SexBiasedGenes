@@ -1,0 +1,61 @@
+---
+title: "FMF Estimation"
+output: html_document
+---
+
+In this script we wil estimate Facial Masculinity-Femininity (FMF) from a subset of European samples.
+The sample will be extracted from the imputed samples
+
+## Preliminaries
+
+```{r libraries, message=FALSE}
+library(dplyr)
+```
+
+
+```{r databases, message=FALSE}
+setwd('../..')
+path <- getwd()
+setwd(paste(path, "/SexBiasedGenes/DataBases", sep = ""))
+fam <- read.table("ADAPT_filter90_info50_1.fam", sep = " ")
+
+setwd(paste(path, "/FacialSD/Results/FacePCA", sep = ""))
+coeffs <- read.csv("coeffs.csv")
+```
+
+Data cleaning
+
+```{r}
+coeffs <- filter(coeffs, Sex == 'Female' | Sex == 'Male')
+coeffs <- droplevels(coeffs)
+coeffs <- na.omit(coeffs)
+dim(coeffs)
+coeffs <- coeffs[coeffs$ID %in% fam$V2, ]
+fam    <- fam[fam$V2 %in% coeffs$ID, ]
+```
+
+## FMF estimation
+
+```{r}
+fit <- lm(as.matrix(coeffs[,7:93]) ~ coeffs$Sex + coeffs$Age + coeffs$BMI)
+summary(manova(fit))
+
+nonallo  <- fit$coefficients[2,] - (coef(fit)[4,] * (mean(coeffs[coeffs$Sex == 'Male',6]) - mean(coeffs[coeffs$Sex == 'Female',6])))
+norm_vec <- function(x) sqrt(sum(x^2))
+fmfs     <- numeric(nrow(coeffs))
+
+for(i in 1:nrow(coeffs)){
+  dot     <- as.numeric(coeffs[i,7:93]) %*% nonallo
+  norm    <- norm_vec(nonallo)^2
+  fmfs[i] <- dot / norm 
+}
+
+```
+
+```{r saving}
+setwd(paste(path, "/SexBiasedGenes/Results/FMF", sep = ""))
+newdat     <- coeffs[,1:6]
+newdat$FMF <- fmfs
+write.csv(newdat, file = "FMFestimation.csv", quote = FALSE, row.names = FALSE)
+```
+
