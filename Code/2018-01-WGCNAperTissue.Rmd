@@ -165,6 +165,7 @@ autoplot(gr, layout = "karyogram")
 #Save granges object
 setwd(paste(path, "/Results/WGCNA/Adipose", sep = ""))
 save(gr, file = "AdiposeGRanges.RData")
+write.table(gr, file = "GeneRanges.txt", sep = " ", quote = F, row.names = F, col.names = F)
 ```
 
 
