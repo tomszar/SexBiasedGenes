@@ -1,0 +1,47 @@
+---
+title: "GWAS Analysis"
+output: html_document
+---
+
+This script will run the GWAS analysis using the cropped imputed genotypes
+
+## Preliminaries
+
+Loadind libraries
+
+```{r libraries, message=FALSE}
+library(snpStats)
+```
+
+```{r databases, message=FALSE}
+setwd('..')
+path <- getwd()
+#Read pheno
+setwd(paste(path, "/Results/FMF", sep = ""))
+pheno <- read.csv("Phenotypes.csv")
+rownames(pheno) <- pheno$ID
+```
+
+```{r}
+#Read genotypes
+for(chrom in 1:23){
+  setwd(paste(path, "/DataBases/ImputedGenotypes/croppedfiles", sep = ""))
+  bed <- paste("cropped_chr", chrom , ".bed", sep = "")
+  bim <- paste("cropped_chr", chrom , ".bim", sep = "")
+  fam <- paste("cropped_chr", chrom , ".fam", sep = "")
+  plinkf   <- read.plink(bed, bim, fam)
+  genotype <- plinkf$genotypes
+  rm(plinkf)
+  subset   <- rownames(genotype) %in% pheno$ID
+  genotype <- genotype[subset, ]
+  res      <- snp.rhs.tests(FMF ~ Sex + Age + BMI + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + 
+                                  PC9 + PC10, 
+                            family = "Gaussian", data = pheno, snp.data = genotype)
+  finres <- data.frame(SNP = res@snp.names, p.value = p.value(res), stringsAsFactors = FALSE)
+  finres <- finres[!is.na(finres$p.value), ]
+  setwd(paste(path, "/Results/GWAS", sep = ""))
+  write.csv(finres, paste(paste("finalres", chrom, sep = "_"), ".csv", sep = ""))
+}
+```
+
+
