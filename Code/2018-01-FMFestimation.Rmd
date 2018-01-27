@@ -4,23 +4,33 @@ output: html_document
 ---
 
 In this script we wil estimate Facial Masculinity-Femininity (FMF) from a subset of European samples.
-The sample will be extracted from the imputed samples
+The sample subset will be extracted from the previously imputed samples.
+Additionally, we will export phenotypic data, as well as genetic PCA for the first 10 PCs.
 
 ## Preliminaries
+
+Loading libraries
 
 ```{r libraries, message=FALSE}
 library(dplyr)
 ```
 
+Loading databases
 
 ```{r databases, message=FALSE}
 setwd('../..')
 path <- getwd()
-setwd(paste(path, "/SexBiasedGenes/DataBases", sep = ""))
+setwd(paste(path, "/SexBiasedGenes/DataBases/ImputedGenotypes", sep = ""))
 fam <- read.table("ADAPT_filter90_info50_1.fam", sep = " ")
 
 setwd(paste(path, "/FacialSD/Results/FacePCA", sep = ""))
 coeffs <- read.csv("coeffs.csv")
+
+setwd(paste(path, "/FacialSD/Results/GenPCA", sep = ""))
+pca.eigenval <- read.csv("PCA.eigenval", sep = "", header = F)
+pca.eigenvec <- read.csv("PCA.eigenvec", sep = "", header = F)
+PCnames      <- sprintf("PC%s",seq(1:50))
+colnames(pca.eigenvec) <- c("FID", "IID", PCnames)
 ```
 
 Data cleaning
@@ -30,8 +40,14 @@ coeffs <- filter(coeffs, Sex == 'Female' | Sex == 'Male')
 coeffs <- droplevels(coeffs)
 coeffs <- na.omit(coeffs)
 dim(coeffs)
-coeffs <- coeffs[coeffs$ID %in% fam$V2, ]
-fam    <- fam[fam$V2 %in% coeffs$ID, ]
+coeffs       <- coeffs[coeffs$ID %in% fam$V2, ]
+fam          <- fam[fam$V2 %in% coeffs$ID, ]
+pca.eigenvec <- pca.eigenvec[pca.eigenvec$IID %in% coeffs$ID, ]
+colnames(pca.eigenvec)[2] <- "ID"
+#Remove duplicates
+pca.eigenvec <- pca.eigenvec[!duplicated(pca.eigenvec$ID),]
+#Unnormalize PCA
+pca.eigenvec[,3:52] <- t(c(as.matrix(pca.eigenval)) * t(as.matrix(pca.eigenvec[,3:52])))
 ```
 
 ## FMF estimation
@@ -56,6 +72,7 @@ for(i in 1:nrow(coeffs)){
 setwd(paste(path, "/SexBiasedGenes/Results/FMF", sep = ""))
 newdat     <- coeffs[,1:6]
 newdat$FMF <- fmfs
-write.csv(newdat, file = "FMFestimation.csv", quote = FALSE, row.names = FALSE)
+newdat <- left_join(newdat, pca.eigenvec[, 2:12], by="ID")
+write.csv(newdat, file = "Phenotypes.csv", quote = FALSE, row.names = FALSE)
 ```
 
