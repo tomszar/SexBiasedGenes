@@ -1,0 +1,27 @@
+---
+title: "Post GWAS Analysis"
+output: html_document
+---
+
+```{r libraries}
+setwd('..')
+path <- getwd()
+setwd(paste(path, "/Results/GWAS", sep = ""))
+test1 <- read.csv("finalres_21.csv")
+```
+
+
+```{r databases}
+setwd('..')
+path <- getwd()
+setwd(paste(path, "/Results/GWAS", sep = ""))
+dataFiles <- lapply(Sys.glob("finalres*.csv"), read.csv)
+```
+
+```{r}
+pvals <- unlist(lapply(dataFiles, "[", c(3)))
+hist(pvals)
+sum(pvals < (5 * 10^-8))
+booltable <- lapply(dataFiles, function(x) x[,3] < (5 * 10^-8))
+```
+
