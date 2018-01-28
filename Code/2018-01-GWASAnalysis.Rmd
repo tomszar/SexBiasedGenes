@@ -40,7 +40,8 @@ for(chrom in 1:23){
   finres <- data.frame(SNP = res@snp.names, p.value = p.value(res), stringsAsFactors = FALSE)
   finres <- finres[!is.na(finres$p.value), ]
   setwd(paste(path, "/Results/GWAS", sep = ""))
-  write.csv(finres, paste(paste("finalres", chrom, sep = "_"), ".csv", sep = ""))
+  write.csv(finres, paste(paste("finalres", chrom, sep = "_"), ".csv", sep = ""), quote = F,
+            row.names = F)
 }
 ```
 
