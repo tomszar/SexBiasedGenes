@@ -12,7 +12,7 @@ do
 	counter="${inputname##*_}"
 	echo $counter
 	outname="cropped_chr${counter}"
-	./plink --bfile $inputname --extract range $(echo $generanges) --make-bed --out $outname
+	./plink --bfile $inputname --extract range $(echo $generanges) --maf --make-bed --out $outname
 done
 
 mv cropped*.* croppedfiles/
